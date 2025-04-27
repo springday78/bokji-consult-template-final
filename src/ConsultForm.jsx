@@ -1,10 +1,8 @@
-// src/ConsultForm.jsx
-import React, { useState } from 'react';
+import { collection, addDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { collection, addDoc } from 'firebase/firestore';
 
 function ConsultForm() {
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     name: '',
     gender: '',
     birth: '',
@@ -15,15 +13,23 @@ function ConsultForm() {
   });
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await addDoc(collection(db, 'consultations'), form);
-      alert('등록 완료!');
-      setForm({
+      // 1단계: 새 문서 추가
+      const docRef = await addDoc(collection(db, 'consultations'), formData);
+
+      // 2단계: 추가된 문서에 id 필드 업데이트
+      await updateDoc(docRef, {
+        id: docRef.id,
+      });
+
+      alert('상담 등록 완료!');
+      setFormData({
         name: '',
         gender: '',
         birth: '',
@@ -33,30 +39,17 @@ function ConsultForm() {
         content: '',
       });
     } catch (error) {
-      alert('등록에 실패했어요 😢');
-      console.error('등록 오류:', error);
+      console.error('등록 실패:', error);
+      alert('등록 중 오류가 발생했습니다.');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <input name="name" placeholder="이름" value={form.name} onChange={handleChange} className="border p-2 w-full" />
-      <input name="birth" placeholder="생년월일" value={form.birth} onChange={handleChange} className="border p-2 w-full" />
-      <input name="phone" placeholder="연락처" value={form.phone} onChange={handleChange} className="border p-2 w-full" />
-      <input name="refType" placeholder="연계구분" value={form.refType} onChange={handleChange} className="border p-2 w-full" />
-      <input name="date" type="date" value={form.date} onChange={handleChange} className="border p-2 w-full" />
-      
-      <div className="flex gap-4 items-center">
-        <label>성별:</label>
-        <label><input type="radio" name="gender" value="남" checked={form.gender === '남'} onChange={handleChange} /> 남</label>
-        <label><input type="radio" name="gender" value="여" checked={form.gender === '여'} onChange={handleChange} /> 여</label>
-      </div>
-
-      <textarea name="content" placeholder="상담내용" value={form.content} onChange={handleChange} className="border p-2 w-full h-24" />
-
-      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-        상담 등록
-      </button>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* 입력 폼 구성 */}
+      <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="이름" />
+      {/* 나머지 입력란들도 추가 */}
+      <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">등록하기</button>
     </form>
   );
 }

@@ -11,6 +11,7 @@ function App() {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'consultations'), (snapshot) => {
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      console.log('📋 현재 consultations 목록:', data);  // ✅ 여기 추가
       setConsultations(data);
     });
     return () => unsub();
@@ -94,28 +95,4 @@ function App() {
                 <td className="border p-2 whitespace-nowrap">{item.refType}</td>
                 <td className="border p-2 whitespace-nowrap">{item.date}</td>
                 <td className="border p-2 whitespace-nowrap">{item.content}</td>
-                <td className="border p-2 text-center">
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-                  >
-                    삭제
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {consultations.length === 0 && (
-              <tr>
-                <td colSpan="9" className="text-center p-4 text-gray-400">
-                  등록된 상담이 없습니다.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-export default App;
+                <td className="border p-2 text
