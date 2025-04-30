@@ -2,10 +2,11 @@
   "name": "bokji-consult-template",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vite",
-    "build": "npm rebuild && vite build",
-    "preview": "vite preview"
-  },
+  "dev": "vite",
+  "build": "npm run compile && vite build",
+  "compile": "npx tsc",
+  "preview": "vite preview"
+},
   "dependencies": {
     "date-fns": "^4.1.0",
     "firebase": "^11.6.0",
