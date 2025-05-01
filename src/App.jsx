@@ -7,10 +7,12 @@ import ConsultForm from './ConsultForm';
 function App() {
   const [consultations, setConsultations] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [view, setView] = useState('form'); // 🌟 화면 상태: 'form' 또는 'list'
-  const [search, setSearch] = useState(''); // 검색어 상태
+  const [view, setView] = useState('form');
+  const [search, setSearch] = useState('');
 
-  // 상담 내역 가져오기
+  const [editMode, setEditMode] = useState(false);
+  const [currentEdit, setCurrentEdit] = useState(null);
+
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'consultations'), (snapshot) => {
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -19,7 +21,6 @@ function App() {
     return () => unsub();
   }, []);
 
-  // 삭제 핸들러
   const handleDelete = async (id) => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
     await deleteDoc(doc(db, 'consultations', id));
@@ -45,7 +46,12 @@ function App() {
     );
   };
 
-  // 🔍 검색 필터링
+  const handleEdit = (item) => {
+    setCurrentEdit(item);
+    setEditMode(true);
+    setView('form');
+  };
+
   const filteredConsultations = consultations.filter((item) =>
     [item.name, item.phone, item.refType].some((field) =>
       field?.toLowerCase().includes(search.toLowerCase())
@@ -56,10 +62,13 @@ function App() {
     <div className="p-10 max-w-7xl mx-auto">
       <h1 className="text-4xl font-bold text-blue-800 mb-8 text-center">복지용구 상담노트</h1>
 
-      {/* 버튼 영역 */}
       <div className="flex justify-center gap-4 mb-8">
         <button
-          onClick={() => setView('form')}
+          onClick={() => {
+            setView('form');
+            setEditMode(false);
+            setCurrentEdit(null);
+          }}
           className={`px-6 py-2 rounded border ${view === 'form' ? 'bg-blue-500 text-white' : 'bg-white text-blue-500'}`}
         >
           상담 등록
@@ -72,12 +81,17 @@ function App() {
         </button>
       </div>
 
-      {/* 화면 전환 */}
       {view === 'form' ? (
-        <ConsultForm />
+        <ConsultForm
+          editMode={editMode}
+          currentEdit={currentEdit}
+          onFinishEdit={() => {
+            setEditMode(false);
+            setCurrentEdit(null);
+          }}
+        />
       ) : (
         <div>
-          {/* 검색창 */}
           <div className="flex justify-end mb-4">
             <input
               type="text"
@@ -88,7 +102,6 @@ function App() {
             />
           </div>
 
-          {/* 선택 삭제 버튼 */}
           <div className="mb-4">
             <button
               onClick={handleBulkDelete}
@@ -98,9 +111,8 @@ function App() {
             </button>
           </div>
 
-          {/* 상담 내역 테이블 */}
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm border border-gray-300">
+            <table className="min-w-full text-sm border border-gray-300 table-auto">
               <thead className="bg-gray-100">
                 <tr>
                   <th className="border p-2">선택</th>
@@ -111,12 +123,12 @@ function App() {
                   <th className="border p-2">연계구분</th>
                   <th className="border p-2">상담날짜</th>
                   <th className="border p-2">상담내용</th>
-                  <th className="border p-2">삭제</th>
+                  <th className="border p-2">작업</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredConsultations.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
+                  <tr key={item.id} className="hover:bg-gray-50 align-top">
                     <td className="border p-2 text-center">
                       <input
                         type="checkbox"
@@ -130,8 +142,16 @@ function App() {
                     <td className="border p-2">{item.phone}</td>
                     <td className="border p-2">{item.refType}</td>
                     <td className="border p-2">{item.date}</td>
-                    <td className="border p-2">{item.content}</td>
-                    <td className="border p-2 text-center">
+                    <td className="border p-2 whitespace-pre-line break-words max-w-[250px]">
+                      {item.content}
+                    </td>
+                    <td className="border p-2 text-center space-x-1">
+                      <button
+                        onClick={() => handleEdit(item)}
+                        className="text-blue-500 hover:text-blue-700"
+                      >
+                        수정
+                      </button>
                       <button
                         onClick={() => handleDelete(item.id)}
                         className="text-red-500 hover:text-red-700"
@@ -151,4 +171,3 @@ function App() {
 }
 
 export default App;
-
