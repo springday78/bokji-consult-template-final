@@ -8,10 +8,12 @@
   },
   "dependencies": {
     "date-fns": "^4.1.0",
+    "file-saver": "^2.0.5",
     "firebase": "^11.6.0",
     "react": "^18.2.0",
     "react-datepicker": "^8.3.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.4",
@@ -22,4 +24,3 @@
     "vite": "^4.4.0"
   }
 }
-

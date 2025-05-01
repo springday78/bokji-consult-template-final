@@ -1,15 +1,15 @@
-// src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import ConsultForm from './ConsultForm';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 function App() {
   const [consultations, setConsultations] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [view, setView] = useState('form');
   const [search, setSearch] = useState('');
-
   const [editMode, setEditMode] = useState(false);
   const [currentEdit, setCurrentEdit] = useState(null);
 
@@ -52,6 +52,23 @@ function App() {
     setView('form');
   };
 
+  const handleExportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(consultations);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '상담기록');
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: 'xlsx',
+      type: 'array',
+    });
+
+    const blob = new Blob([excelBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8',
+    });
+
+    saveAs(blob, 'consultations.xlsx');
+  };
+
   const filteredConsultations = consultations.filter((item) =>
     [item.name, item.phone, item.refType].some((field) =>
       field?.toLowerCase().includes(search.toLowerCase())
@@ -69,13 +86,17 @@ function App() {
             setEditMode(false);
             setCurrentEdit(null);
           }}
-          className={`px-6 py-2 rounded border ${view === 'form' ? 'bg-blue-500 text-white' : 'bg-white text-blue-500'}`}
+          className={`px-6 py-2 rounded border ${
+            view === 'form' ? 'bg-blue-500 text-white' : 'bg-white text-blue-500'
+          }`}
         >
           상담 등록
         </button>
         <button
           onClick={() => setView('list')}
-          className={`px-6 py-2 rounded border ${view === 'list' ? 'bg-blue-500 text-white' : 'bg-white text-blue-500'}`}
+          className={`px-6 py-2 rounded border ${
+            view === 'list' ? 'bg-blue-500 text-white' : 'bg-white text-blue-500'
+          }`}
         >
           상담 내역 보기
         </button>
@@ -92,7 +113,7 @@ function App() {
         />
       ) : (
         <div>
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-between mb-4">
             <input
               type="text"
               value={search}
@@ -100,6 +121,12 @@ function App() {
               placeholder="이름, 연락처, 연계구분 검색"
               className="border px-3 py-2 rounded w-80"
             />
+            <button
+              onClick={handleExportToExcel}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            >
+              엑셀 다운로드
+            </button>
           </div>
 
           <div className="mb-4">
