@@ -61,6 +61,7 @@ function App() {
       연계구분: item.refType,
       상담날짜: item.date,
       상담내용: item.content,
+      구매목록: (item.products || []).join(', '),
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData, { origin: 'A1' });
@@ -183,6 +184,7 @@ function App() {
                   <th className="border p-2">연계구분</th>
                   <th className="border p-2">상담날짜</th>
                   <th className="border p-2">상담내용</th>
+                  <th className="border p-2">구매목록</th>
                   <th className="border p-2">작업</th>
                 </tr>
               </thead>
@@ -204,6 +206,9 @@ function App() {
                     <td className="border p-2">{item.date}</td>
                     <td className="border p-2 whitespace-pre-line break-words max-w-[250px]">
                       {item.content}
+                    </td>
+                    <td className="border p-2 whitespace-pre-line break-words max-w-[250px]">
+                      {(item.products || []).join(', ')}
                     </td>
                     <td className="border p-2 text-center space-x-1">
                       <button
