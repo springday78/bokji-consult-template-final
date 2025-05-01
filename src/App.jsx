@@ -53,20 +53,53 @@ function App() {
   };
 
   const handleExportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(consultations);
+    const exportData = consultations.map((item) => ({
+      이름: item.name,
+      성별: item.gender,
+      생년월일: item.birth,
+      연락처: item.phone,
+      연계구분: item.refType,
+      상담날짜: item.date,
+      상담내용: item.content,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData, { origin: 'A1' });
+
+    const colWidths = Object.keys(exportData[0] || {}).map((key) => {
+      const maxLen = Math.max(
+        key.length,
+        ...exportData.map((row) => String(row[key] || '').length)
+      );
+      return { wch: maxLen + 2 };
+    });
+
+    worksheet['!cols'] = colWidths;
+
+    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    rows.forEach((row, rowIndex) => {
+      row.forEach((_, colIndex) => {
+        const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
+        const cell = worksheet[cellRef];
+        if (cell && typeof cell.v === 'string' && cell.v.includes('\n')) {
+          cell.s = { alignment: { wrapText: true } };
+        }
+      });
+    });
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, '상담기록');
 
     const excelBuffer = XLSX.write(workbook, {
       bookType: 'xlsx',
       type: 'array',
+      cellStyles: true,
     });
 
     const blob = new Blob([excelBuffer], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8',
     });
 
-    saveAs(blob, 'consultations.xlsx');
+    saveAs(blob, '복지용구_상담기록.xlsx');
   };
 
   const filteredConsultations = consultations.filter((item) =>
