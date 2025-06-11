@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { db } from '../firebase';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { supabase } from '../supabase';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { productOptions } from '../data/productOptions';
+import * as XLSX from 'xlsx';
 
 const copayRates = ['15%', '9%', '6%', '0%'];
 
 function ConsultStats() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+  const [filterText, setFilterText] = useState('');
   const [stats, setStats] = useState([]);
 
   const fetchData = async () => {
@@ -18,18 +19,23 @@ function ConsultStats() {
       return;
     }
 
-    const q = query(collection(db, 'consultations'));
-    const snapshot = await getDocs(q);
+    const { data, error } = await supabase.from('consultations').select('*');
+
+    if (error) {
+      console.error('데이터 불러오기 오류:', error);
+      alert('데이터를 불러오지 못했습니다.');
+      return;
+    }
+
     const resultMap = {};
 
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      const docDate = new Date(data.date);
+    data.forEach((row) => {
+      const docDate = new Date(row.date);
       if (docDate < startDate || docDate > endDate) return;
 
-      const personName = data.name || '이름없음';
+      const personName = row.name || '이름없음';
 
-      (data.products || []).forEach((item) => {
+      (row.products || []).forEach((item) => {
         const category = getCategory(item.name);
         const product = item.name;
         const quantity = parseInt(item.quantity || '1', 10);
@@ -63,10 +69,16 @@ function ConsultStats() {
       });
     });
 
-    const resultList = Object.values(resultMap).map(item => ({
+    let resultList = Object.values(resultMap).map(item => ({
       ...item,
       names: Array.from(item.names).join(', '),
     }));
+
+    if (filterText) {
+      resultList = resultList.filter(
+        item => item.category.includes(filterText) || item.product.includes(filterText)
+      );
+    }
 
     setStats(resultList);
   };
@@ -78,11 +90,29 @@ function ConsultStats() {
     return '기타';
   };
 
-  return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h2 className="text-2xl font-bold text-blue-700 mb-4">품목별 상담 통계</h2>
+  const downloadExcel = () => {
+    const rows = stats.map(row => ({
+      품목명: row.category,
+      제품명: row.product,
+      '15%': row.copayStats['15%'],
+      '9%': row.copayStats['9%'],
+      '6%': row.copayStats['6%'],
+      '0%': row.copayStats['0%'],
+      기타: row.copayStats['기타'],
+      총수량: row.total,
+      어르신명단: row.names,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '통계');
+    XLSX.writeFile(wb, '상담통계.xlsx');
+  };
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6 items-center">
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      <h2 className="text-2xl font-bold text-blue-700 mb-4">📊 품목별 상담 통계</h2>
+
+      <div className="flex flex-wrap gap-4 mb-6 items-center">
         <div className="flex gap-2 items-center">
           <label className="font-medium">시작일:</label>
           <DatePicker
@@ -103,11 +133,24 @@ function ConsultStats() {
             className="border p-2 rounded"
           />
         </div>
+        <input
+          type="text"
+          placeholder="품목 또는 제품 검색"
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+          className="border p-2 rounded"
+        />
         <button
           onClick={fetchData}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           통계 조회
+        </button>
+        <button
+          onClick={downloadExcel}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          📥 엑셀 다운로드
         </button>
       </div>
 
@@ -141,7 +184,7 @@ function ConsultStats() {
           </tbody>
         </table>
       ) : (
-        <p className="text-gray-500 mt-6">표시할 통계가 없습니다. 날짜를 선택하고 조회를 눌러주세요.</p>
+        <p className="text-gray-500 mt-6">표시할 통계가 없습니다. 조건을 입력하고 조회해주세요.</p>
       )}
     </div>
   );
